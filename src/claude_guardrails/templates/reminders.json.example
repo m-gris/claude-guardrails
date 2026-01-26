@@ -1,0 +1,22 @@
+{
+  "reminders": [
+    {
+      "id": "turn-marker",
+      "interval_turns": 1,
+      "interval_seconds": 1,
+      "message": "<turn n=\"$CUMULATIVE_TURNS\" pid=\"$PID\" ts=\"$NOW_ISO\"/>"
+    },
+    {
+      "id": "task-check",
+      "interval_turns": 10,
+      "interval_seconds": 900,
+      "message": "<task-check ts=\"$NOW_ISO\">\nReview task list. Have you completed anything? Are there blocked tasks?\n</task-check>"
+    },
+    {
+      "id": "save-progress",
+      "interval_turns": 20,
+      "interval_seconds": 1800,
+      "message": "<save-progress ts=\"$NOW_ISO\">\nConsider committing progress. Small, frequent commits are better than large, rare ones.\n</save-progress>"
+    }
+  ]
+}
