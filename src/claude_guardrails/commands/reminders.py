@@ -15,18 +15,19 @@ from rich.table import Table
 
 from claude_guardrails.paths import REMINDERS_CONFIG, REMINDERS_STATE_DIR, ensure_dirs
 from claude_guardrails.settings import HookSpec, is_hook_registered, register_hook, unregister_hook
+from claude_guardrails.types import HookEvent
 
 app = typer.Typer(no_args_is_help=True)
 console = Console()
 
 HOOK_SPEC = HookSpec(
-    event="UserPromptSubmit",
+    event=HookEvent.USER_PROMPT_SUBMIT,
     matcher=None,
     command="~/.claude/hooks/periodic-reminders.sh",
 )
 
 
-@dataclass
+@dataclass(frozen=True)
 class Reminder:
     """A periodic reminder configuration."""
 

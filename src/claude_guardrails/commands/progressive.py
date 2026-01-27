@@ -7,12 +7,13 @@ from rich.console import Console
 
 from claude_guardrails.paths import HOOKS_DIR, PROGRESSIVE_CONFIG, ensure_dirs
 from claude_guardrails.settings import HookSpec, is_hook_registered, register_hook, unregister_hook
+from claude_guardrails.types import HookEvent
 
 app = typer.Typer(no_args_is_help=True)
 console = Console()
 
 HOOK_SPEC = HookSpec(
-    event="PreToolUse",
+    event=HookEvent.PRE_TOOL_USE,
     matcher="Read",
     command="~/.claude/hooks/structured-file-nudge.py",
 )

@@ -18,29 +18,29 @@ from rich.table import Table
 from claude_guardrails.paths import (
     GUARDRAILS_DIR,
     HOOKS_DIR,
-    REMINDERS_CONFIG,
     REMINDERS_STATE_DIR,
     ensure_dirs,
 )
 from claude_guardrails.settings import HookSpec, is_hook_registered, register_hook
+from claude_guardrails.types import CopyStatus, HookEvent
 
 console = Console()
 
 # Hook definitions
 PERIODIC_REMINDERS_HOOK = HookSpec(
-    event="UserPromptSubmit",
+    event=HookEvent.USER_PROMPT_SUBMIT,
     matcher=None,
     command="~/.claude/hooks/periodic-reminders.sh",
 )
 
 PROGRESSIVE_DISCLOSURE_HOOK = HookSpec(
-    event="PreToolUse",
+    event=HookEvent.PRE_TOOL_USE,
     matcher="Read",
     command="~/.claude/hooks/structured-file-nudge.py",
 )
 
 URL_DISCIPLINE_HOOK = HookSpec(
-    event="PreToolUse",
+    event=HookEvent.PRE_TOOL_USE,
     matcher="WebFetch",
     command="~/.claude/hooks/webfetch-url-discipline.py",
 )
@@ -51,7 +51,7 @@ class CopyResult:
     """Result of copying a single hook."""
 
     name: str
-    status: str  # "copied" | "skipped" | "conflict"
+    status: CopyStatus
     conflict_path: str | None = None  # Path where conflicting version was installed
 
 
@@ -94,7 +94,7 @@ def copy_hooks() -> list[CopyResult]:
 
         if dest.exists():
             if files_identical(hook_file, dest):
-                results.append(CopyResult(name=hook_file.name, status="skipped"))
+                results.append(CopyResult(name=hook_file.name, status=CopyStatus.SKIPPED))
             else:
                 # Conflict: install with hash suffix
                 stem = hook_file.stem
@@ -107,14 +107,14 @@ def copy_hooks() -> list[CopyResult]:
                 results.append(
                     CopyResult(
                         name=hook_file.name,
-                        status="conflict",
+                        status=CopyStatus.CONFLICT,
                         conflict_path=str(conflict_dest),
                     )
                 )
         else:
             shutil.copy2(hook_file, dest)
             dest.chmod(dest.stat().st_mode | 0o111)
-            results.append(CopyResult(name=hook_file.name, status="copied"))
+            results.append(CopyResult(name=hook_file.name, status=CopyStatus.COPIED))
 
     return results
 
@@ -163,9 +163,9 @@ def run_install(enable_all: bool = False) -> None:
     # Copy hooks
     hook_results = copy_hooks()
 
-    copied = [r.name for r in hook_results if r.status == "copied"]
-    skipped = [r.name for r in hook_results if r.status == "skipped"]
-    conflicts = [r for r in hook_results if r.status == "conflict"]
+    copied = [r.name for r in hook_results if r.status == CopyStatus.COPIED]
+    skipped = [r.name for r in hook_results if r.status == CopyStatus.SKIPPED]
+    conflicts = [r for r in hook_results if r.status == CopyStatus.CONFLICT]
 
     if copied:
         console.print(f"[green]✓[/green] Installed: {', '.join(copied)}")

@@ -6,17 +6,17 @@ Handles reading/writing hook registrations in Claude Code's settings file.
 
 import json
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 from claude_guardrails.paths import SETTINGS_LOCAL
+from claude_guardrails.types import HookEvent
 
 
 @dataclass(frozen=True)
 class HookSpec:
     """Specification for a hook to register."""
 
-    event: str  # SessionStart, UserPromptSubmit, PreToolUse, PostToolUse
+    event: HookEvent
     matcher: str | None  # Tool matcher (e.g., "Read", "WebFetch")
     command: str  # Command to run
 
@@ -43,12 +43,13 @@ def register_hook(spec: HookSpec) -> bool:
     settings = load_settings()
 
     # Ensure hooks structure exists
+    event_key = spec.event.value
     if "hooks" not in settings:
         settings["hooks"] = {}
-    if spec.event not in settings["hooks"]:
-        settings["hooks"][spec.event] = []
+    if event_key not in settings["hooks"]:
+        settings["hooks"][event_key] = []
 
-    event_hooks = settings["hooks"][spec.event]
+    event_hooks = settings["hooks"][event_key]
 
     # Build the hook entry
     hook_entry = {"type": "command", "command": spec.command}
@@ -88,12 +89,13 @@ def unregister_hook(spec: HookSpec) -> bool:
     """
     settings = load_settings()
 
+    event_key = spec.event.value
     if "hooks" not in settings:
         return False
-    if spec.event not in settings["hooks"]:
+    if event_key not in settings["hooks"]:
         return False
 
-    event_hooks = settings["hooks"][spec.event]
+    event_hooks = settings["hooks"][event_key]
 
     # Find the matcher group
     for group in event_hooks:
@@ -117,13 +119,14 @@ def unregister_hook(spec: HookSpec) -> bool:
 def is_hook_registered(spec: HookSpec) -> bool:
     """Check if a hook is registered."""
     settings = load_settings()
+    event_key = spec.event.value
 
     if "hooks" not in settings:
         return False
-    if spec.event not in settings["hooks"]:
+    if event_key not in settings["hooks"]:
         return False
 
-    for group in settings["hooks"][spec.event]:
+    for group in settings["hooks"][event_key]:
         if group.get("matcher") == spec.matcher:
             for hook in group["hooks"]:
                 if hook.get("command") == spec.command:
