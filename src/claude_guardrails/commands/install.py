@@ -1,12 +1,17 @@
 """
 Install command - copies hooks to ~/.claude/ and optionally enables all.
+
+Conflict handling:
+- If hook exists and is identical: skip silently
+- If hook exists and differs: install as name-<hash>.ext, print diff commands
+- If hook missing: copy normally
 """
 
-import importlib.resources
+import hashlib
 import shutil
+from dataclasses import dataclass
 from pathlib import Path
 
-import typer
 from rich.console import Console
 from rich.table import Table
 
@@ -41,31 +46,77 @@ URL_DISCIPLINE_HOOK = HookSpec(
 )
 
 
+@dataclass(frozen=True)
+class CopyResult:
+    """Result of copying a single hook."""
+
+    name: str
+    status: str  # "copied" | "skipped" | "conflict"
+    conflict_path: str | None = None  # Path where conflicting version was installed
+
+
 def get_bundled_hooks_dir() -> Path:
     """Get path to bundled hooks in the package."""
-    # Use importlib.resources for Python 3.9+
     import claude_guardrails.hooks as hooks_module
 
     return Path(hooks_module.__file__).parent
 
 
-def copy_hooks() -> list[str]:
-    """Copy bundled hooks to ~/.claude/hooks/. Returns list of copied files."""
+def file_hash(path: Path) -> str:
+    """Compute short SHA256 hash of file content."""
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:6]
+
+
+def files_identical(path1: Path, path2: Path) -> bool:
+    """Check if two files have identical content."""
+    return path1.read_bytes() == path2.read_bytes()
+
+
+def copy_hooks() -> list[CopyResult]:
+    """
+    Copy bundled hooks to ~/.claude/hooks/.
+
+    Conflict handling:
+    - Identical content: skip silently
+    - Different content: install as name-<hash>.ext
+    """
     ensure_dirs()
     hooks_source = get_bundled_hooks_dir()
-    copied = []
+    results = []
 
     for hook_file in hooks_source.iterdir():
         if hook_file.name.startswith("_"):
             continue
-        if hook_file.suffix in (".py", ".sh"):
-            dest = HOOKS_DIR / hook_file.name
-            shutil.copy2(hook_file, dest)
-            # Make executable
-            dest.chmod(dest.stat().st_mode | 0o111)
-            copied.append(hook_file.name)
+        if hook_file.suffix not in (".py", ".sh"):
+            continue
 
-    return copied
+        dest = HOOKS_DIR / hook_file.name
+
+        if dest.exists():
+            if files_identical(hook_file, dest):
+                results.append(CopyResult(name=hook_file.name, status="skipped"))
+            else:
+                # Conflict: install with hash suffix
+                stem = hook_file.stem
+                suffix = hook_file.suffix
+                content_hash = file_hash(hook_file)
+                conflict_name = f"{stem}-{content_hash}{suffix}"
+                conflict_dest = HOOKS_DIR / conflict_name
+                shutil.copy2(hook_file, conflict_dest)
+                conflict_dest.chmod(conflict_dest.stat().st_mode | 0o111)
+                results.append(
+                    CopyResult(
+                        name=hook_file.name,
+                        status="conflict",
+                        conflict_path=str(conflict_dest),
+                    )
+                )
+        else:
+            shutil.copy2(hook_file, dest)
+            dest.chmod(dest.stat().st_mode | 0o111)
+            results.append(CopyResult(name=hook_file.name, status="copied"))
+
+    return results
 
 
 def copy_templates() -> list[str]:
@@ -110,10 +161,25 @@ def run_install(enable_all: bool = False) -> None:
     console.print("\n[bold]Installing claude-guardrails...[/bold]\n")
 
     # Copy hooks
-    copied_hooks = copy_hooks()
-    if copied_hooks:
-        console.print(f"[green]✓[/green] Copied hooks: {', '.join(copied_hooks)}")
-    else:
+    hook_results = copy_hooks()
+
+    copied = [r.name for r in hook_results if r.status == "copied"]
+    skipped = [r.name for r in hook_results if r.status == "skipped"]
+    conflicts = [r for r in hook_results if r.status == "conflict"]
+
+    if copied:
+        console.print(f"[green]✓[/green] Installed: {', '.join(copied)}")
+    if skipped:
+        console.print(f"[dim]○[/dim] Unchanged: {', '.join(skipped)}")
+    if conflicts:
+        console.print(f"\n[yellow]![/yellow] Conflicts detected ({len(conflicts)}):")
+        for c in conflicts:
+            console.print(f"    {c.name} exists with different content")
+            console.print(f"      → New version: {c.conflict_path}")
+            console.print(f"      → Compare: [dim]diff {HOOKS_DIR / c.name} {c.conflict_path}[/dim]")
+            console.print(f"      → To use new: [dim]mv {c.conflict_path} {HOOKS_DIR / c.name}[/dim]")
+
+    if not hook_results:
         console.print("[yellow]![/yellow] No hooks found to copy")
 
     # Copy templates
