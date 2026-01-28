@@ -6,7 +6,6 @@ import json
 import uuid
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Optional
 
 import typer
 from rich.console import Console
@@ -105,10 +104,10 @@ def list_reminders() -> None:
 
 @app.command()
 def add(
-    id: Optional[str] = typer.Option(None, "--id", "-i", help="Reminder ID (auto-generated if not provided)"),
-    turns: Optional[int] = typer.Option(None, "--turns", "-t", help="Trigger every N turns"),
-    seconds: Optional[int] = typer.Option(None, "--seconds", "-s", help="Trigger every N seconds"),
-    message: Optional[str] = typer.Option(None, "--message", "-m", help="Reminder message"),
+    id: str | None = typer.Option(None, "--id", "-i", help="Reminder ID (auto-generated if not provided)"),
+    turns: int | None = typer.Option(None, "--turns", "-t", help="Trigger every N turns"),
+    seconds: int | None = typer.Option(None, "--seconds", "-s", help="Trigger every N seconds"),
+    message: str | None = typer.Option(None, "--message", "-m", help="Reminder message"),
 ) -> None:
     """Add a new reminder (interactive if options not provided)."""
     reminders = load_reminders()

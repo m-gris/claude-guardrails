@@ -15,12 +15,6 @@ HOOKS_DIR = CLAUDE_HOME / "hooks"
 REMINDERS_CONFIG = GUARDRAILS_DIR / "reminders.json"
 REMINDERS_STATE_DIR = GUARDRAILS_DIR / "state"
 
-# Progressive disclosure
-PROGRESSIVE_CONFIG = GUARDRAILS_DIR / "progressive-disclosure.yaml"
-
-# URL discipline
-URL_ALLOWLIST = GUARDRAILS_DIR / "url-allowlist.txt"
-
 # Settings file (Claude Code's local settings)
 SETTINGS_LOCAL = CLAUDE_HOME / "settings.local.json"
 

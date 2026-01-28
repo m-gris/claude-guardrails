@@ -60,7 +60,6 @@ uvx claude-guardrails reminders reset <id>    # or 'all'
 uvx claude-guardrails progressive-disclosure enable
 uvx claude-guardrails progressive-disclosure disable
 uvx claude-guardrails progressive-disclosure status
-uvx claude-guardrails progressive-disclosure config
 ```
 
 ### URL Discipline
@@ -69,9 +68,6 @@ uvx claude-guardrails progressive-disclosure config
 uvx claude-guardrails url-discipline enable
 uvx claude-guardrails url-discipline disable
 uvx claude-guardrails url-discipline status
-uvx claude-guardrails url-discipline allow "*.github.com"
-uvx claude-guardrails url-discipline list
-uvx claude-guardrails url-discipline deny "*.github.com"
 ```
 
 ### Status
@@ -93,9 +89,7 @@ All configuration lives in `~/.claude/`:
 │   └── webfetch-url-discipline.py
 ├── guardrails/
 │   ├── reminders.json                  # Reminder configuration
-│   ├── state/                          # Runtime state (turn counts, timestamps)
-│   ├── progressive-disclosure.yaml     # (optional) Threshold config
-│   └── url-allowlist.txt               # URL allowlist patterns
+│   └── state/                          # Runtime state (turn counts, timestamps)
 └── settings.local.json                 # Claude Code settings (hooks registered here)
 ```
 

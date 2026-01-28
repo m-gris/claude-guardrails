@@ -16,7 +16,6 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 
 # =============================================================================
@@ -43,7 +42,7 @@ class NudgeLevel(Enum):
 class FileInfo:
     path: str
     extension: str
-    line_count: Optional[int]
+    line_count: int | None
 
 
 @dataclass(frozen=True)
@@ -55,7 +54,7 @@ class HookInput:
 @dataclass(frozen=True)
 class HookOutput:
     should_add_context: bool
-    context_message: Optional[str]
+    context_message: str | None
     permission_decision: str  # "allow" | "ask"
 
 
@@ -82,7 +81,7 @@ def is_structured_file(extension: str) -> bool:
     return extension in STRUCTURED_EXTENSIONS
 
 
-def determine_nudge_level(line_count: Optional[int]) -> NudgeLevel:
+def determine_nudge_level(line_count: int | None) -> NudgeLevel:
     """Decide nudge intensity based on file size."""
     if line_count is None:
         return NudgeLevel.NONE
@@ -100,7 +99,7 @@ def query_tool_for_extension(extension: str) -> str:
     return "yq"
 
 
-def format_nudge_message(file_info: FileInfo, nudge_level: NudgeLevel) -> Optional[str]:
+def format_nudge_message(file_info: FileInfo, nudge_level: NudgeLevel) -> str | None:
     """Generate context message based on nudge level. Pure string formatting."""
     if nudge_level == NudgeLevel.NONE:
         return None
@@ -137,7 +136,7 @@ def decide_hook_output(file_info: FileInfo) -> HookOutput:
     )
 
 
-def render_output(hook_output: HookOutput) -> Optional[str]:
+def render_output(hook_output: HookOutput) -> str | None:
     """Serialize hook output to JSON for Claude Code. Pure transformation."""
     if not hook_output.should_add_context:
         return None
@@ -161,7 +160,7 @@ def read_stdin() -> dict:
     return json.load(sys.stdin)
 
 
-def get_line_count(path: str) -> Optional[int]:
+def get_line_count(path: str) -> int | None:
     """Effect: Count lines in file via subprocess."""
     try:
         result = subprocess.run(

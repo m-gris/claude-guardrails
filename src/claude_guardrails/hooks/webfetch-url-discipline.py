@@ -13,7 +13,6 @@ import json
 import sys
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 from urllib.parse import urlparse
 
 
@@ -59,7 +58,7 @@ class HookInput:
 @dataclass(frozen=True)
 class HookOutput:
     should_add_context: bool
-    context_message: Optional[str]
+    context_message: str | None
     permission_decision: str  # "allow" | "ask"
 
 
@@ -145,7 +144,7 @@ def decide_hook_output(url_info: UrlInfo) -> HookOutput:
     )
 
 
-def render_output(hook_output: HookOutput) -> Optional[str]:
+def render_output(hook_output: HookOutput) -> str | None:
     """Serialize hook output to JSON for Claude Code."""
     if not hook_output.should_add_context:
         return None
@@ -198,11 +197,13 @@ def main() -> int:
     # Pure: decide
     hook_output = decide_hook_output(url_info)
 
-    # Effect: block with message if deep path
-    if hook_output.should_add_context:
-        # Exit code 2 = block tool call, show stderr to model
-        print(hook_output.context_message, file=sys.stderr)
-        return 2
+    # Pure: render
+    rendered = render_output(hook_output)
+
+    # Effect: write and block if deep path
+    if rendered:
+        write_stdout(rendered)
+        return 2  # block tool call
 
     return 0
 
